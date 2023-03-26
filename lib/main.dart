@@ -1,65 +1,56 @@
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:xml/xml.dart';
+import 'package:flutter/material.dart'; //* стандартный пакет
+import './model/fetch_currencies.dart'; //* наша функция
+import 'model/Currency.dart'; //* наш класс для работы с валютой
 
 void main() {
-  runApp(MyApp());
+  runApp(MyApp()); //* запуск приложения
 }
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Котировки валют',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
+      title: 'Currency Exchange Rates',
+      home: Scaffold(
+        appBar: AppBar(
+          title: Text('Currency Exchange Rates'),
+        ),
+        body: FutureBuilder<List<Currency>>(
+          //* создаем в нашем body виджет  FutureBuilder
+          future:
+              fetchCurrencies(), //* передаем в него нашу функцию для получения данных
+          builder: //* приступаем к формированию нашего элемента
+              (BuildContext context, AsyncSnapshot<List<Currency>> snapshot) {
+            if (snapshot.hasData) {
+              //* проверка на наличие данных
+              return ListView.builder(
+                //* создаем бесконечный ListView
+                itemCount: snapshot.data!
+                    .length, //* задаём количество элементов на основании нашего запроса к XML файлу
+                itemBuilder: (BuildContext context, int index) {
+                  final currency = snapshot.data![
+                      index]; //* получаем данные из предоставленного списка по индексу
+                  return Card(
+                    //* возвращаем элемент с нашими данными
+                    child: ListTile(
+                      title: Text(currency.name),
+                      subtitle: Text(currency.value.toStringAsFixed(2)),
+                    ),
+                  );
+                },
+              );
+            } else if (snapshot.hasError) {
+              return Center(
+                  child: Text(
+                      'Error: ${snapshot.error}')); //* если произошел сбой, то выведем ошибку
+            } else {
+              return Center(
+                  child:
+                      CircularProgressIndicator()); //* иначе выведем индикатор о прогрессе загрузки данных
+            }
+          },
+        ),
       ),
-      home: ExchangeRatesScreen(),
     );
   }
-}
-
-class ExchangeRatesScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Котировки валют'),
-      ),
-      body: FutureBuilder<List<String>>(
-        future: fetchExchangeRates(),
-        builder: (context, snapshot) {
-          if (snapshot.hasData) {
-            return ListView.builder(
-              itemCount: snapshot.data!.length,
-              itemBuilder: (context, index) => ListTile(
-                title: Text(snapshot.data![index]),
-              ),
-            );
-          } else if (snapshot.hasError) {
-            return Center(
-              child: Text('Ошибка при загрузке котировок: ${snapshot.error}'),
-            );
-          } else {
-            return Center(
-              child: CircularProgressIndicator(),
-            );
-          }
-        },
-      ),
-    );
-  }
-}
-
-Future<List<String>> fetchExchangeRates() async {
-  final response =
-      await http.get(Uri.parse('https://www.cbr.ru/scripts/XML_daily.asp'));
-  final document = XmlDocument.parse(response.body);
-  final rates = document.findAllElements('Valute').map((element) {
-    final name = element.findElements('CharCode').single.text;
-    final value = element.findElements('Value').single.text;
-    return '$name: $value';
-  }).toList();
-  return rates;
 }
