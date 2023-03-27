@@ -123,7 +123,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 return Padding(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                  child: Container(
+                  child: SizedBox(
                     height: 100,
                     child: Card(
                       shape: RoundedRectangleBorder(
